@@ -1,0 +1,14 @@
+[package]
+name = "array"
+version = "0.1.0"
+authors = ["nathanfaucett <nathanfaucett@gmail.com>"]
+
+keywords = ["array"]
+description = "fixed sized array"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/nathanfaucett/rs-array.git"
+homepage = "https://github.com/nathanfaucett/rs-array"
+
+[dependencies]
+[dev-dependencies]
