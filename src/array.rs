@@ -3,20 +3,22 @@ use alloc::{oom, heap};
 use core::isize;
 use core::ptr::{self, Unique};
 use core::{mem, slice};
-use core::ops::{Index, IndexMut};
+use core::intrinsics::assume;
+use core::ops::{Index, IndexMut, Deref, DerefMut};
 
 
 pub struct Array<T> {
-    size: usize,
+    len: usize,
     ptr: Unique<T>,
 }
 
 impl<T> Array<T> {
-    pub fn new(size: usize) -> Self {
+
+    pub fn new(len: usize) -> Self {
         unsafe {
             let elem_size = mem::size_of::<T>();
 
-            let alloc_size = size.checked_mul(elem_size).expect("size overflow");
+            let alloc_size = len.checked_mul(elem_size).expect("len overflow");
             alloc_guard(alloc_size);
 
             let ptr = if alloc_size == 0 {
@@ -32,20 +34,27 @@ impl<T> Array<T> {
 
             Array {
                 ptr: Unique::new(ptr as *mut _),
-                size: size,
+                len: len,
             }
         }
     }
 
-    pub unsafe fn get_unchecked(&self, index: usize) -> &T {
-        &slice::from_raw_parts(*self.ptr, self.size)[index]
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.len
     }
+
+    #[inline(always)]
+    pub unsafe fn get_unchecked(&self, index: usize) -> &T {
+        &(**self)[index]
+    }
+    #[inline(always)]
     pub unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut T {
-        &mut slice::from_raw_parts_mut(*self.ptr, self.size)[index]
+        &mut (**self)[index]
     }
 
     pub fn get(&self, index: usize) -> Option<&T> {
-        if index < self.size {
+        if index < self.len {
             Some(unsafe {
                 self.get_unchecked(index)
             })
@@ -54,7 +63,7 @@ impl<T> Array<T> {
         }
     }
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
-        if index < self.size {
+        if index < self.len {
             Some(unsafe {
                 self.get_unchecked_mut(index)
             })
@@ -68,10 +77,10 @@ impl<T> Drop for Array<T> {
     fn drop(&mut self) {
         let elem_size = mem::size_of::<T>();
 
-        if elem_size != 0 && self.size != 0 {
+        if elem_size != 0 && self.len != 0 {
             let align = mem::align_of::<T>();
 
-            let num_bytes = elem_size * self.size;
+            let num_bytes = elem_size * self.len;
             unsafe {
                 heap::deallocate(*self.ptr as *mut _, num_bytes, align);
             }
@@ -82,21 +91,46 @@ impl<T> Drop for Array<T> {
 impl<T> Index<usize> for Array<T> {
     type Output = T;
 
+    #[inline]
     fn index(&self, index: usize) -> &Self::Output {
         unsafe { self.get_unchecked(index) }
     }
 }
 impl<T> IndexMut<usize> for Array<T> {
+    #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         unsafe { self.get_unchecked_mut(index) }
     }
 }
 
+impl<T> Deref for Array<T> {
+    type Target = [T];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        unsafe {
+            let p = *self.ptr;
+            assume(!p.is_null());
+            slice::from_raw_parts(p, self.len)
+        }
+    }
+}
+impl<T> DerefMut for Array<T> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe {
+            let p = *self.ptr;
+            assume(!p.is_null());
+            slice::from_raw_parts_mut(p, self.len)
+        }
+    }
+}
+
 impl<T: Clone> Clone for Array<T> {
     fn clone(&self) -> Self {
-        let cloned = Array::<T>::new(self.size);
+        let cloned = Array::<T>::new(self.len);
         unsafe {
-            ptr::copy(*self.ptr as *const _, *cloned.ptr, self.size);
+            ptr::copy(*self.ptr as *const _, *cloned.ptr, self.len);
         }
         cloned
     }
@@ -105,7 +139,7 @@ impl<T: Clone> Clone for Array<T> {
 #[inline]
 fn alloc_guard(alloc_size: usize) {
     if mem::size_of::<usize>() < 8 {
-        assert!(alloc_size <= isize::MAX as usize, "size overflow");
+        assert!(alloc_size <= isize::MAX as usize, "len overflow");
     }
 }
 
