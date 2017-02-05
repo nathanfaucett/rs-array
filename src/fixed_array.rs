@@ -8,12 +8,12 @@ use core::intrinsics::assume;
 use core::ops::{Deref, DerefMut};
 
 
-pub struct Array<T> {
+pub struct FixedArray<T> {
     len: usize,
     ptr: Unique<T>,
 }
 
-impl<T> Array<T> {
+impl<T> FixedArray<T> {
 
     pub fn new(len: usize) -> Self {
         unsafe {
@@ -33,7 +33,7 @@ impl<T> Array<T> {
                 ptr
             };
 
-            Array {
+            FixedArray {
                 ptr: Unique::new(ptr as *mut _),
                 len: len,
             }
@@ -42,7 +42,7 @@ impl<T> Array<T> {
 
     #[inline]
     pub unsafe fn from_raw_parts(ptr: *mut T, len: usize) -> Self {
-        Array {
+        FixedArray {
             ptr: Unique::new(ptr),
             len: len,
         }
@@ -51,7 +51,7 @@ impl<T> Array<T> {
     #[inline]
     pub fn from_box(mut slice: Box<[T]>) -> Self {
         unsafe {
-            let result = Array::from_raw_parts(slice.as_mut_ptr(), slice.len());
+            let result = FixedArray::from_raw_parts(slice.as_mut_ptr(), slice.len());
             mem::forget(slice);
             result
         }
@@ -63,7 +63,7 @@ impl<T> Array<T> {
     }
 }
 
-impl<T> Drop for Array<T> {
+impl<T> Drop for FixedArray<T> {
     fn drop(&mut self) {
         let elem_size = mem::size_of::<T>();
 
@@ -78,7 +78,7 @@ impl<T> Drop for Array<T> {
     }
 }
 
-impl<T> Deref for Array<T> {
+impl<T> Deref for FixedArray<T> {
     type Target = [T];
 
     #[inline]
@@ -90,7 +90,7 @@ impl<T> Deref for Array<T> {
         }
     }
 }
-impl<T> DerefMut for Array<T> {
+impl<T> DerefMut for FixedArray<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe {
@@ -101,9 +101,9 @@ impl<T> DerefMut for Array<T> {
     }
 }
 
-impl<T: Clone> Clone for Array<T> {
+impl<T: Clone> Clone for FixedArray<T> {
     fn clone(&self) -> Self {
-        let cloned = Array::<T>::new(self.len);
+        let cloned = FixedArray::<T>::new(self.len);
         unsafe {
             ptr::copy(*self.ptr as *const _, *cloned.ptr, self.len);
         }
@@ -126,34 +126,34 @@ mod test {
 
     #[test]
     fn test_get() {
-        let array = Array::<usize>::new(5);
+        let fixed_array = FixedArray::<usize>::new(5);
 
-        assert_eq!(array[0], 0);
-        assert_eq!(array[1], 0);
-        assert_eq!(array[2], 0);
-        assert_eq!(array[3], 0);
-        assert_eq!(array[4], 0);
+        assert_eq!(fixed_array[0], 0);
+        assert_eq!(fixed_array[1], 0);
+        assert_eq!(fixed_array[2], 0);
+        assert_eq!(fixed_array[3], 0);
+        assert_eq!(fixed_array[4], 0);
     }
     #[test]
     fn test_get_mut() {
-        let mut array = Array::<usize>::new(5);
+        let mut fixed_array = FixedArray::<usize>::new(5);
 
-        array[0] = 1;
-        array[1] = 2;
-        array[2] = 3;
-        array[3] = 4;
-        array[4] = 5;
+        fixed_array[0] = 1;
+        fixed_array[1] = 2;
+        fixed_array[2] = 3;
+        fixed_array[3] = 4;
+        fixed_array[4] = 5;
 
-        assert_eq!(array[0], 1);
-        assert_eq!(array[1], 2);
-        assert_eq!(array[2], 3);
-        assert_eq!(array[3], 4);
-        assert_eq!(array[4], 5);
+        assert_eq!(fixed_array[0], 1);
+        assert_eq!(fixed_array[1], 2);
+        assert_eq!(fixed_array[2], 3);
+        assert_eq!(fixed_array[3], 4);
+        assert_eq!(fixed_array[4], 5);
     }
 
     #[test]
     fn test_get_clone_mut() {
-        let mut a = Array::<usize>::new(3);
+        let mut a = FixedArray::<usize>::new(3);
         let b = a.clone();
 
         a[0] = 1;
@@ -174,41 +174,41 @@ mod test {
 
     #[test]
     fn test_empty_get() {
-        let array = Array::<EMPTY>::new(3);
+        let fixed_array = FixedArray::<EMPTY>::new(3);
 
-        assert_eq!(array[0], EMPTY);
-        assert_eq!(array[1], EMPTY);
-        assert_eq!(array[2], EMPTY);
+        assert_eq!(fixed_array[0], EMPTY);
+        assert_eq!(fixed_array[1], EMPTY);
+        assert_eq!(fixed_array[2], EMPTY);
     }
     #[test]
     fn test_empty_get_mut() {
-        let mut array = Array::<EMPTY>::new(5);
+        let mut fixed_array = FixedArray::<EMPTY>::new(5);
 
-        array[0] = EMPTY;
-        array[1] = EMPTY;
-        array[2] = EMPTY;
+        fixed_array[0] = EMPTY;
+        fixed_array[1] = EMPTY;
+        fixed_array[2] = EMPTY;
 
-        assert_eq!(array[0], EMPTY);
-        assert_eq!(array[1], EMPTY);
-        assert_eq!(array[2], EMPTY);
+        assert_eq!(fixed_array[0], EMPTY);
+        assert_eq!(fixed_array[1], EMPTY);
+        assert_eq!(fixed_array[2], EMPTY);
     }
 
     #[test]
     fn test_iter() {
-        let array = Array::<usize>::new(5);
+        let fixed_array = FixedArray::<usize>::new(5);
 
-        for value in array.iter() {
+        for value in fixed_array.iter() {
             assert_eq!(*value, 0);
         }
     }
     #[test]
     fn test_iter_mut() {
-        let mut array = Array::<usize>::new(5);
+        let mut fixed_array = FixedArray::<usize>::new(5);
 
-        for value in array.iter_mut() {
+        for value in fixed_array.iter_mut() {
             *value = 1;
         }
-        for value in array.iter() {
+        for value in fixed_array.iter() {
             assert_eq!(*value, 1);
         }
     }

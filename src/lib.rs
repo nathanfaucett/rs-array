@@ -10,7 +10,7 @@
 extern crate alloc;
 
 
-mod array;
+mod fixed_array;
 
 
-pub use array::Array;
+pub use fixed_array::FixedArray;
