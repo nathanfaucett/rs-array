@@ -1,9 +1,8 @@
 use alloc::{oom, heap};
 
 use core::isize;
-use core::ptr::Unique;
-use core::mem;
-use core::slice;
+use core::ptr::{self, Unique};
+use core::{mem, slice};
 use core::ops::{Index, IndexMut};
 
 
@@ -93,6 +92,15 @@ impl<T> IndexMut<usize> for Array<T> {
     }
 }
 
+impl<T: Clone> Clone for Array<T> {
+    fn clone(&self) -> Self {
+        let cloned = Array::<T>::new(self.size);
+        unsafe {
+            ptr::copy(*self.ptr as *const _, *cloned.ptr, self.size);
+        }
+        cloned
+    }
+}
 
 #[inline]
 fn alloc_guard(alloc_size: usize) {
@@ -132,6 +140,24 @@ mod test {
         assert_eq!(array[2], 3);
         assert_eq!(array[3], 4);
         assert_eq!(array[4], 5);
+    }
+
+    #[test]
+    fn test_get_clone_mut() {
+        let mut a = Array::<usize>::new(3);
+        let b = a.clone();
+
+        a[0] = 1;
+        a[1] = 2;
+        a[2] = 3;
+
+        assert_eq!(a[0], 1);
+        assert_eq!(a[1], 2);
+        assert_eq!(a[2], 3);
+
+        assert_eq!(b[0], 0);
+        assert_eq!(b[1], 0);
+        assert_eq!(b[2], 0);
     }
 
     #[derive(Debug, PartialEq, Eq)]
