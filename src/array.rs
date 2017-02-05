@@ -217,4 +217,24 @@ mod test {
         assert_eq!(array[1], EMPTY);
         assert_eq!(array[2], EMPTY);
     }
+
+    #[test]
+    fn test_iter() {
+        let array = Array::<usize>::new(5);
+
+        for value in array.iter() {
+            assert_eq!(*value, 0);
+        }
+    }
+    #[test]
+    fn test_iter_mut() {
+        let mut array = Array::<usize>::new(5);
+
+        for value in array.iter_mut() {
+            *value = 1;
+        }
+        for value in array.iter() {
+            assert_eq!(*value, 1);
+        }
+    }
 }
