@@ -1,10 +1,11 @@
 use alloc::{oom, heap};
+use alloc::boxed::Box;
 
 use core::isize;
 use core::ptr::{self, Unique};
 use core::{mem, slice};
 use core::intrinsics::assume;
-use core::ops::{Index, IndexMut, Deref, DerefMut};
+use core::ops::{Deref, DerefMut};
 
 
 pub struct Array<T> {
@@ -18,7 +19,7 @@ impl<T> Array<T> {
         unsafe {
             let elem_size = mem::size_of::<T>();
 
-            let alloc_size = len.checked_mul(elem_size).expect("len overflow");
+            let alloc_size = len.checked_mul(elem_size).expect("capacity overflow");
             alloc_guard(alloc_size);
 
             let ptr = if alloc_size == 0 {
@@ -40,36 +41,25 @@ impl<T> Array<T> {
     }
 
     #[inline]
+    pub unsafe fn from_raw_parts(ptr: *mut T, len: usize) -> Self {
+        Array {
+            ptr: Unique::new(ptr),
+            len: len,
+        }
+    }
+
+    #[inline]
+    pub fn from_box(mut slice: Box<[T]>) -> Self {
+        unsafe {
+            let result = Array::from_raw_parts(slice.as_mut_ptr(), slice.len());
+            mem::forget(slice);
+            result
+        }
+    }
+
+    #[inline]
     pub fn len(&self) -> usize {
         self.len
-    }
-
-    #[inline(always)]
-    pub unsafe fn get_unchecked(&self, index: usize) -> &T {
-        &(**self)[index]
-    }
-    #[inline(always)]
-    pub unsafe fn get_unchecked_mut(&mut self, index: usize) -> &mut T {
-        &mut (**self)[index]
-    }
-
-    pub fn get(&self, index: usize) -> Option<&T> {
-        if index < self.len {
-            Some(unsafe {
-                self.get_unchecked(index)
-            })
-        } else {
-            None
-        }
-    }
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
-        if index < self.len {
-            Some(unsafe {
-                self.get_unchecked_mut(index)
-            })
-        } else {
-            None
-        }
     }
 }
 
@@ -85,21 +75,6 @@ impl<T> Drop for Array<T> {
                 heap::deallocate(*self.ptr as *mut _, num_bytes, align);
             }
         }
-    }
-}
-
-impl<T> Index<usize> for Array<T> {
-    type Output = T;
-
-    #[inline]
-    fn index(&self, index: usize) -> &Self::Output {
-        unsafe { self.get_unchecked(index) }
-    }
-}
-impl<T> IndexMut<usize> for Array<T> {
-    #[inline]
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        unsafe { self.get_unchecked_mut(index) }
     }
 }
 
