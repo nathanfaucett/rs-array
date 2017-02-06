@@ -1,14 +1,14 @@
 [package]
-name = "fixed_array"
+name = "buffer"
 version = "0.1.0"
 authors = ["nathanfaucett <nathanfaucett@gmail.com>"]
 
-keywords = ["fixed_array"]
-description = "fixed sized fixed_array"
+keywords = ["buffer"]
+description = "fixed sized buffer"
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/nathanfaucett/rs-fixed_array.git"
-homepage = "https://github.com/nathanfaucett/rs-fixed_array"
+repository = "https://github.com/nathanfaucett/rs-buffer.git"
+homepage = "https://github.com/nathanfaucett/rs-buffer"
 
 [dependencies]
 [dev-dependencies]
