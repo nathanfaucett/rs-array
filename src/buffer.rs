@@ -3,7 +3,7 @@ use alloc::boxed::Box;
 
 use core::isize;
 use core::ptr::{self, Unique};
-use core::{mem, slice};
+use core::{mem, slice, fmt};
 use core::intrinsics::assume;
 use core::ops::{Deref, DerefMut};
 
@@ -141,6 +141,12 @@ impl<T: Clone> Clone for Buffer<T> {
             ptr::copy(*self.ptr as *const _, *cloned.ptr, self.len);
         }
         cloned
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for Buffer<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(&**self, f)
     }
 }
 
