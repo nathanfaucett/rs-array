@@ -1,27 +1,27 @@
-rs-buffer [![Build Status](https://travis-ci.org/nathanfaucett/rs-buffer.svg?branch=master)](https://travis-ci.org/nathanfaucett/rs-buffer)
+rs-array [![Build Status](https://travis-ci.org/nathanfaucett/rs-buffer.svg?branch=master)](https://travis-ci.org/nathanfaucett/rs-buffer)
 =====
-fixed sized buffer
+fixed sized array
 
 ```rust
-extern crate buffer;
+extern crate array;
 
 
-use buffer::Buffer;
+use array::Array;
 
 
 fn main() {
-    let mut buffer = Buffer::new(5);
+    let mut array = Array::new(5);
 
-    buffer[0] = 1;
-    buffer[1] = 2;
-    buffer[2] = 3;
-    buffer[3] = 4;
-    buffer[4] = 5;
+    array[0] = 1;
+    array[1] = 2;
+    array[2] = 3;
+    array[3] = 4;
+    array[4] = 5;
 
-    assert_eq!(buffer[0], 1);
-    assert_eq!(buffer[1], 2);
-    assert_eq!(buffer[2], 3);
-    assert_eq!(buffer[3], 4);
-    assert_eq!(buffer[4], 5);
+    assert_eq!(array[0], 1);
+    assert_eq!(array[1], 2);
+    assert_eq!(array[2], 3);
+    assert_eq!(array[3], 4);
+    assert_eq!(array[4], 5);
 }
 ```

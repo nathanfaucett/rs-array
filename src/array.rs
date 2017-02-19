@@ -7,12 +7,12 @@ use core::{mem, slice, fmt};
 use core::ops::{Deref, DerefMut};
 
 
-pub struct Buffer<T> {
+pub struct Array<T> {
     len: usize,
     ptr: Unique<T>,
 }
 
-impl<T> Buffer<T> {
+impl<T> Array<T> {
 
     pub fn new(len: usize) -> Self {
         unsafe {
@@ -32,7 +32,7 @@ impl<T> Buffer<T> {
                 ptr
             };
 
-            Buffer {
+            Array {
                 ptr: Unique::new(ptr as *mut _),
                 len: len,
             }
@@ -41,7 +41,7 @@ impl<T> Buffer<T> {
 
     #[inline]
     pub unsafe fn from_raw_parts(ptr: *mut T, len: usize) -> Self {
-        Buffer {
+        Array {
             ptr: Unique::new(ptr),
             len: len,
         }
@@ -50,7 +50,7 @@ impl<T> Buffer<T> {
     #[inline]
     pub fn from_box(mut slice: Box<[T]>) -> Self {
         unsafe {
-            let result = Buffer::from_raw_parts(slice.as_mut_ptr(), slice.len());
+            let result = Array::from_raw_parts(slice.as_mut_ptr(), slice.len());
             mem::forget(slice);
             result
         }
@@ -96,7 +96,7 @@ impl<T> Buffer<T> {
     }
 }
 
-impl<T> Drop for Buffer<T> {
+impl<T> Drop for Array<T> {
     fn drop(&mut self) {
         let elem_size = mem::size_of::<T>();
 
@@ -112,7 +112,7 @@ impl<T> Drop for Buffer<T> {
     }
 }
 
-impl<T> Deref for Buffer<T> {
+impl<T> Deref for Array<T> {
     type Target = [T];
 
     #[inline(always)]
@@ -122,7 +122,7 @@ impl<T> Deref for Buffer<T> {
         }
     }
 }
-impl<T> DerefMut for Buffer<T> {
+impl<T> DerefMut for Array<T> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe {
@@ -131,9 +131,9 @@ impl<T> DerefMut for Buffer<T> {
     }
 }
 
-impl<T: Clone> Clone for Buffer<T> {
+impl<T: Clone> Clone for Array<T> {
     fn clone(&self) -> Self {
-        let cloned = Buffer::<T>::new(self.len);
+        let cloned = Array::<T>::new(self.len);
         unsafe {
             ptr::copy(*self.ptr as *const _, *cloned.ptr, self.len);
         }
@@ -141,7 +141,7 @@ impl<T: Clone> Clone for Buffer<T> {
     }
 }
 
-impl<T: fmt::Debug> fmt::Debug for Buffer<T> {
+impl<T: fmt::Debug> fmt::Debug for Array<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&**self, f)
     }

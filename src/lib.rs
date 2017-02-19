@@ -9,7 +9,7 @@
 extern crate alloc;
 
 
-mod buffer;
+mod array;
 
 
-pub use buffer::Buffer;
+pub use array::Array;

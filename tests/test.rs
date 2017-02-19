@@ -1,12 +1,12 @@
-extern crate buffer;
+extern crate array;
 
 
-use buffer::Buffer;
+use array::Array;
 
 
 #[test]
 fn test_resize() {
-    let mut buffer = Buffer::<usize>::new(2);
+    let mut buffer = Array::<usize>::new(2);
 
     buffer[0] = 1;
     buffer[1] = 2;
@@ -34,7 +34,7 @@ fn test_resize() {
 }
 #[test]
 fn test_get() {
-    let buffer = Buffer::<usize>::new(5);
+    let buffer = Array::<usize>::new(5);
 
     assert_eq!(buffer[0], 0);
     assert_eq!(buffer[1], 0);
@@ -44,7 +44,7 @@ fn test_get() {
 }
 #[test]
 fn test_get_mut() {
-    let mut buffer = Buffer::<usize>::new(5);
+    let mut buffer = Array::<usize>::new(5);
 
     buffer[0] = 1;
     buffer[1] = 2;
@@ -61,7 +61,7 @@ fn test_get_mut() {
 
 #[test]
 fn test_get_clone_mut() {
-    let mut a = Buffer::<usize>::new(3);
+    let mut a = Array::<usize>::new(3);
     let b = a.clone();
 
     a[0] = 1;
@@ -82,7 +82,7 @@ struct EMPTY;
 
 #[test]
 fn test_empty_get() {
-    let buffer = Buffer::<EMPTY>::new(3);
+    let buffer = Array::<EMPTY>::new(3);
 
     assert_eq!(buffer[0], EMPTY);
     assert_eq!(buffer[1], EMPTY);
@@ -90,7 +90,7 @@ fn test_empty_get() {
 }
 #[test]
 fn test_empty_get_mut() {
-    let mut buffer = Buffer::<EMPTY>::new(5);
+    let mut buffer = Array::<EMPTY>::new(5);
 
     buffer[0] = EMPTY;
     buffer[1] = EMPTY;
@@ -102,7 +102,7 @@ fn test_empty_get_mut() {
 }
 #[test]
 fn test_empty_get_mut_resize() {
-    let mut buffer = Buffer::<EMPTY>::new(3);
+    let mut buffer = Array::<EMPTY>::new(3);
 
     buffer.resize(1);
     assert_eq!(buffer[0], EMPTY);
@@ -115,7 +115,7 @@ fn test_empty_get_mut_resize() {
 
 #[test]
 fn test_iter() {
-    let buffer = Buffer::<usize>::new(5);
+    let buffer = Array::<usize>::new(5);
 
     for value in buffer.iter() {
         assert_eq!(*value, 0);
@@ -123,7 +123,7 @@ fn test_iter() {
 }
 #[test]
 fn test_iter_mut() {
-    let mut buffer = Buffer::<usize>::new(5);
+    let mut buffer = Array::<usize>::new(5);
 
     for value in buffer.iter_mut() {
         *value = 1;
