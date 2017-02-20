@@ -8,11 +8,6 @@ use core::{mem, slice, fmt};
 use core::ops::{Deref, DerefMut};
 
 
-extern "rust-intrinsic" {
-    fn offset<T>(dst: *const T, offset: isize) -> *const T;
-}
-
-
 pub struct Array<T> {
     len: usize,
     ptr: Unique<T>,
@@ -173,9 +168,12 @@ fn alloc_guard(alloc_size: usize) {
 }
 
 #[inline]
-unsafe fn memzero(ptr: *mut u8, mut i: usize, n: usize) {
-    while i < n {
-        *(offset(ptr as *const u8, i as isize) as *mut u8) = 0u8;
-        i += 1;
+unsafe fn memzero(ptr: *mut u8, offset: usize, len: usize) -> *mut u8 {
+    let mut slice = slice::from_raw_parts_mut(ptr, len);
+
+    for i in offset..len {
+        *slice.get_unchecked_mut(i) = 0u8;
     }
+
+    ptr
 }
