@@ -1,3 +1,5 @@
+#![feature(intrinsics)]
+#![feature(core_intrinsics)]
 #![feature(dropck_parametricity)]
 #![feature(heap_api)]
 #![feature(oom)]
@@ -9,7 +11,7 @@
 extern crate alloc;
 
 
-mod buffer;
+mod array;
 
 
-pub use buffer::Buffer;
+pub use array::Array;

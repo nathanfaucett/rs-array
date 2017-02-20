@@ -2,17 +2,23 @@ use alloc::{oom, heap};
 use alloc::boxed::Box;
 
 use core::isize;
+use core::intrinsics::assume;
 use core::ptr::{self, Unique};
 use core::{mem, slice, fmt};
 use core::ops::{Deref, DerefMut};
 
 
-pub struct Buffer<T> {
+extern "rust-intrinsic" {
+    fn offset<T>(dst: *const T, offset: isize) -> *const T;
+}
+
+
+pub struct Array<T> {
     len: usize,
     ptr: Unique<T>,
 }
 
-impl<T> Buffer<T> {
+impl<T> Array<T> {
 
     pub fn new(len: usize) -> Self {
         unsafe {
@@ -32,7 +38,9 @@ impl<T> Buffer<T> {
                 ptr
             };
 
-            Buffer {
+            memzero(ptr, 0, alloc_size);
+
+            Array {
                 ptr: Unique::new(ptr as *mut _),
                 len: len,
             }
@@ -41,7 +49,7 @@ impl<T> Buffer<T> {
 
     #[inline]
     pub unsafe fn from_raw_parts(ptr: *mut T, len: usize) -> Self {
-        Buffer {
+        Array {
             ptr: Unique::new(ptr),
             len: len,
         }
@@ -50,7 +58,7 @@ impl<T> Buffer<T> {
     #[inline]
     pub fn from_box(mut slice: Box<[T]>) -> Self {
         unsafe {
-            let result = Buffer::from_raw_parts(slice.as_mut_ptr(), slice.len());
+            let result = Array::from_raw_parts(slice.as_mut_ptr(), slice.len());
             mem::forget(slice);
             result
         }
@@ -76,17 +84,23 @@ impl<T> Buffer<T> {
                 let align = mem::align_of::<T>();
 
                 let new_alloc_size = new_len * elem_size;
+                let old_alloc_size = self.len * elem_size;
                 alloc_guard(new_alloc_size);
 
                 let ptr = heap::reallocate(
                     self.ptr() as *mut _,
-                    self.len * elem_size,
+                    old_alloc_size,
                     new_alloc_size,
                     align
                 );
 
                 if ptr.is_null() {
                     oom()
+                }
+
+                if new_alloc_size > old_alloc_size {
+                    let offset = new_alloc_size - old_alloc_size;
+                    memzero(ptr, offset, new_alloc_size);
                 }
 
                 self.ptr = Unique::new(ptr as *mut _);
@@ -96,7 +110,7 @@ impl<T> Buffer<T> {
     }
 }
 
-impl<T> Drop for Buffer<T> {
+impl<T> Drop for Array<T> {
     fn drop(&mut self) {
         let elem_size = mem::size_of::<T>();
 
@@ -112,28 +126,32 @@ impl<T> Drop for Buffer<T> {
     }
 }
 
-impl<T> Deref for Buffer<T> {
+impl<T> Deref for Array<T> {
     type Target = [T];
 
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe {
-            slice::from_raw_parts(*self.ptr, self.len)
+            let p = *self.ptr;
+            assume(!p.is_null());
+            slice::from_raw_parts(p, self.len)
         }
     }
 }
-impl<T> DerefMut for Buffer<T> {
+impl<T> DerefMut for Array<T> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe {
-            slice::from_raw_parts_mut(*self.ptr, self.len)
+            let p = *self.ptr;
+            assume(!p.is_null());
+            slice::from_raw_parts_mut(p, self.len)
         }
     }
 }
 
-impl<T: Clone> Clone for Buffer<T> {
+impl<T: Clone> Clone for Array<T> {
     fn clone(&self) -> Self {
-        let cloned = Buffer::<T>::new(self.len);
+        let cloned = Array::<T>::new(self.len);
         unsafe {
             ptr::copy(*self.ptr as *const _, *cloned.ptr, self.len);
         }
@@ -141,7 +159,7 @@ impl<T: Clone> Clone for Buffer<T> {
     }
 }
 
-impl<T: fmt::Debug> fmt::Debug for Buffer<T> {
+impl<T: fmt::Debug> fmt::Debug for Array<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&**self, f)
     }
@@ -151,5 +169,13 @@ impl<T: fmt::Debug> fmt::Debug for Buffer<T> {
 fn alloc_guard(alloc_size: usize) {
     if mem::size_of::<usize>() < 8 {
         assert!(alloc_size <= isize::MAX as usize, "capacity overflow");
+    }
+}
+
+#[inline]
+unsafe fn memzero(ptr: *mut u8, mut i: usize, n: usize) {
+    while i < n {
+        *(offset(ptr as *const u8, i as isize) as *mut u8) = 0u8;
+        i += 1;
     }
 }

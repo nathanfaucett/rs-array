@@ -1,67 +1,67 @@
-extern crate buffer;
+extern crate array;
 
 
-use buffer::Buffer;
+use array::Array;
 
 
 #[test]
 fn test_resize() {
-    let mut buffer = Buffer::<usize>::new(2);
+    let mut array = Array::<usize>::new(2);
 
-    buffer[0] = 1;
-    buffer[1] = 2;
+    array[0] = 1;
+    array[1] = 2;
 
-    assert_eq!(buffer[0], 1);
-    assert_eq!(buffer[1], 2);
-    assert_eq!(buffer.len(), 2);
+    assert_eq!(array[0], 1);
+    assert_eq!(array[1], 2);
+    assert_eq!(array.len(), 2);
 
-    buffer.resize(4);
+    array.resize(4);
 
-    buffer[2] = 3;
-    buffer[3] = 4;
+    array[2] = 3;
+    array[3] = 4;
 
-    assert_eq!(buffer[0], 1);
-    assert_eq!(buffer[1], 2);
-    assert_eq!(buffer[2], 3);
-    assert_eq!(buffer[3], 4);
-    assert_eq!(buffer.len(), 4);
+    assert_eq!(array[0], 1);
+    assert_eq!(array[1], 2);
+    assert_eq!(array[2], 3);
+    assert_eq!(array[3], 4);
+    assert_eq!(array.len(), 4);
 
-    buffer.resize(2);
+    array.resize(2);
 
-    assert_eq!(buffer[0], 1);
-    assert_eq!(buffer[1], 2);
-    assert_eq!(buffer.len(), 2);
+    assert_eq!(array[0], 1);
+    assert_eq!(array[1], 2);
+    assert_eq!(array.len(), 2);
 }
 #[test]
 fn test_get() {
-    let buffer = Buffer::<usize>::new(5);
+    let array = Array::<usize>::new(5);
 
-    assert_eq!(buffer[0], 0);
-    assert_eq!(buffer[1], 0);
-    assert_eq!(buffer[2], 0);
-    assert_eq!(buffer[3], 0);
-    assert_eq!(buffer[4], 0);
+    assert_eq!(array[0], 0);
+    assert_eq!(array[1], 0);
+    assert_eq!(array[2], 0);
+    assert_eq!(array[3], 0);
+    assert_eq!(array[4], 0);
 }
 #[test]
 fn test_get_mut() {
-    let mut buffer = Buffer::<usize>::new(5);
+    let mut array = Array::<usize>::new(5);
 
-    buffer[0] = 1;
-    buffer[1] = 2;
-    buffer[2] = 3;
-    buffer[3] = 4;
-    buffer[4] = 5;
+    array[0] = 1;
+    array[1] = 2;
+    array[2] = 3;
+    array[3] = 4;
+    array[4] = 5;
 
-    assert_eq!(buffer[0], 1);
-    assert_eq!(buffer[1], 2);
-    assert_eq!(buffer[2], 3);
-    assert_eq!(buffer[3], 4);
-    assert_eq!(buffer[4], 5);
+    assert_eq!(array[0], 1);
+    assert_eq!(array[1], 2);
+    assert_eq!(array[2], 3);
+    assert_eq!(array[3], 4);
+    assert_eq!(array[4], 5);
 }
 
 #[test]
 fn test_get_clone_mut() {
-    let mut a = Buffer::<usize>::new(3);
+    let mut a = Array::<usize>::new(3);
     let b = a.clone();
 
     a[0] = 1;
@@ -82,53 +82,53 @@ struct EMPTY;
 
 #[test]
 fn test_empty_get() {
-    let buffer = Buffer::<EMPTY>::new(3);
+    let array = Array::<EMPTY>::new(3);
 
-    assert_eq!(buffer[0], EMPTY);
-    assert_eq!(buffer[1], EMPTY);
-    assert_eq!(buffer[2], EMPTY);
+    assert_eq!(array[0], EMPTY);
+    assert_eq!(array[1], EMPTY);
+    assert_eq!(array[2], EMPTY);
 }
 #[test]
 fn test_empty_get_mut() {
-    let mut buffer = Buffer::<EMPTY>::new(5);
+    let mut array = Array::<EMPTY>::new(5);
 
-    buffer[0] = EMPTY;
-    buffer[1] = EMPTY;
-    buffer[2] = EMPTY;
+    array[0] = EMPTY;
+    array[1] = EMPTY;
+    array[2] = EMPTY;
 
-    assert_eq!(buffer[0], EMPTY);
-    assert_eq!(buffer[1], EMPTY);
-    assert_eq!(buffer[2], EMPTY);
+    assert_eq!(array[0], EMPTY);
+    assert_eq!(array[1], EMPTY);
+    assert_eq!(array[2], EMPTY);
 }
 #[test]
 fn test_empty_get_mut_resize() {
-    let mut buffer = Buffer::<EMPTY>::new(3);
+    let mut array = Array::<EMPTY>::new(3);
 
-    buffer.resize(1);
-    assert_eq!(buffer[0], EMPTY);
+    array.resize(1);
+    assert_eq!(array[0], EMPTY);
 
-    buffer.resize(3);
-    assert_eq!(buffer[0], EMPTY);
-    assert_eq!(buffer[1], EMPTY);
-    assert_eq!(buffer[2], EMPTY);
+    array.resize(3);
+    assert_eq!(array[0], EMPTY);
+    assert_eq!(array[1], EMPTY);
+    assert_eq!(array[2], EMPTY);
 }
 
 #[test]
 fn test_iter() {
-    let buffer = Buffer::<usize>::new(5);
+    let array = Array::<usize>::new(5);
 
-    for value in buffer.iter() {
+    for value in array.iter() {
         assert_eq!(*value, 0);
     }
 }
 #[test]
 fn test_iter_mut() {
-    let mut buffer = Buffer::<usize>::new(5);
+    let mut array = Array::<usize>::new(5);
 
-    for value in buffer.iter_mut() {
+    for value in array.iter_mut() {
         *value = 1;
     }
-    for value in buffer.iter() {
+    for value in array.iter() {
         assert_eq!(*value, 1);
     }
 }

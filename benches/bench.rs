@@ -3,56 +3,56 @@
 
 extern crate test;
 
-extern crate buffer;
+extern crate array;
 
 
 use test::Bencher;
 
-use buffer::Buffer;
+use array::Array;
 
 
 const SIZE: usize = 1024;
 
 
 #[bench]
-fn bench_buffer(b: &mut Bencher) {
+fn bench_array(b: &mut Bencher) {
     b.iter(move || {
-        let mut buffer = Buffer::new(SIZE);
+        let mut array = Array::new(SIZE);
 
         for i in 0..SIZE {
-            buffer[i] = i;
+            array[i] = i;
         }
         for i in 0..SIZE {
-            assert_eq!(buffer[i], i);
+            assert_eq!(array[i], i);
         }
-        buffer
+        array
     });
 }
 #[bench]
 fn bench_slice(b: &mut Bencher) {
     b.iter(|| {
-        let mut buffer = [0usize; SIZE];
+        let mut array = [0usize; SIZE];
 
         for i in 0..SIZE {
-            buffer[i] = i;
+            array[i] = i;
         }
         for i in 0..SIZE {
-            assert_eq!(buffer[i], i);
+            assert_eq!(array[i], i);
         }
-        buffer
+        array
     });
 }
 #[bench]
 fn bench_vec(b: &mut Bencher) {
     b.iter(|| {
-        let mut buffer = [0usize; SIZE].to_vec();
+        let mut array = [0usize; SIZE].to_vec();
 
         for i in 0..SIZE {
-            buffer[i] = i;
+            array[i] = i;
         }
         for i in 0..SIZE {
-            assert_eq!(buffer[i], i);
+            assert_eq!(array[i], i);
         }
-        buffer
+        array
     });
 }
