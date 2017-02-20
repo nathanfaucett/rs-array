@@ -6,7 +6,6 @@ use core::ptr::{self, Unique};
 use core::{mem, slice, fmt};
 use core::ops::{Deref, DerefMut};
 
-
 pub struct Array<T> {
     len: usize,
     ptr: Unique<T>,
