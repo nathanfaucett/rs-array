@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+rs-array [![Build Status](https://travis-ci.org/nathanfaucett/rs-array.svg?branch=master)](https://travis-ci.org/nathanfaucett/rs-array)
+=======
 rs-array [![Build Status](https://travis-ci.org/nathanfaucett/rs-buffer.svg?branch=master)](https://travis-ci.org/nathanfaucett/rs-buffer)
+>>>>>>> 4a77d1a1a2ca54feb8c85695eb341721951bf17c
 =====
 fixed sized array
 
@@ -6,11 +10,19 @@ fixed sized array
 extern crate array;
 
 
+<<<<<<< HEAD
+use array::Buffer;
+
+
+fn main() {
+    let mut array = Buffer::new(5);
+=======
 use array::Array;
 
 
 fn main() {
     let mut array = Array::new(5);
+>>>>>>> 4a77d1a1a2ca54feb8c85695eb341721951bf17c
 
     array[0] = 1;
     array[1] = 2;
