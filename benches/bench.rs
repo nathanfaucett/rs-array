@@ -16,43 +16,40 @@ const SIZE: usize = 1024;
 
 #[bench]
 fn bench_array(b: &mut Bencher) {
-    b.iter(move || {
-        let mut array = Array::new(SIZE);
+    let mut array = Array::new(SIZE);
 
+    b.iter(move || {
         for i in 0..SIZE {
             array[i] = i;
         }
         for i in 0..SIZE {
             assert_eq!(array[i], i);
         }
-        array
     });
 }
 #[bench]
 fn bench_slice(b: &mut Bencher) {
-    b.iter(|| {
-        let mut array = [0usize; SIZE];
+    let mut array = [0usize; SIZE];
 
+    b.iter(|| {
         for i in 0..SIZE {
             array[i] = i;
         }
         for i in 0..SIZE {
             assert_eq!(array[i], i);
         }
-        array
     });
 }
 #[bench]
 fn bench_vec(b: &mut Bencher) {
-    b.iter(|| {
-        let mut array = [0usize; SIZE].to_vec();
+    let mut array = [0usize; SIZE].to_vec();
 
+    b.iter(|| {
         for i in 0..SIZE {
             array[i] = i;
         }
         for i in 0..SIZE {
             assert_eq!(array[i], i);
         }
-        array
     });
 }
