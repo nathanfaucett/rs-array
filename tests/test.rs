@@ -77,7 +77,7 @@ fn test_get_clone_mut() {
     assert_eq!(b[2], 0);
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 struct EMPTY;
 
 #[test]

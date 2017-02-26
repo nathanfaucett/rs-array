@@ -13,13 +13,36 @@ pub struct Array<T> {
     ptr: Unique<T>,
 }
 
-impl<T> Array<T> {
-
+impl<T: Default> Array<T> {
+    #[inline]
     pub fn new(len: usize) -> Self {
+        let array = Array::uninitialized(len);
         unsafe {
-            let elem_size = mem::size_of::<T>();
+            memdefault(*array.ptr as *mut T, 0, len);
+        }
+        array
+    }
+    #[inline]
+    pub fn resize(&mut self, new_len: usize) {
+        let old_len = self.len;
 
-            let alloc_size = len.checked_mul(elem_size).expect("capacity overflow");
+        self.resize_uninitialized(new_len);
+
+        if new_len > old_len {
+            let offset = new_len - old_len;
+
+            unsafe {
+                memdefault(*self.ptr, offset, new_len);
+            }
+        }
+    }
+}
+
+impl<T> Array<T> {
+    #[inline(never)]
+    pub fn uninitialized(len: usize) -> Self {
+        unsafe {
+            let alloc_size = len.checked_mul(mem::size_of::<T>()).expect("capacity overflow");
             alloc_guard(alloc_size);
 
             let ptr = if alloc_size == 0 {
@@ -33,13 +56,19 @@ impl<T> Array<T> {
                 ptr
             };
 
-            memzero(ptr, 0, alloc_size);
-
             Array {
                 ptr: Unique::new(ptr as *mut _),
                 len: len,
             }
         }
+    }
+    #[inline]
+    pub fn zeroed(len: usize) -> Self {
+        let array = Array::uninitialized(len);
+        unsafe {
+            memdefault(*array.ptr as *mut u8, 0, len * mem::size_of::<T>());
+        }
+        array
     }
 
     #[inline]
@@ -61,7 +90,11 @@ impl<T> Array<T> {
 
     #[inline(always)]
     pub fn len(&self) -> usize {
-        self.len
+        if mem::size_of::<T>() == 0 {
+            !0
+        } else {
+            self.len
+        }
     }
 
     #[inline(always)]
@@ -71,7 +104,7 @@ impl<T> Array<T> {
 
     #[inline(never)]
     #[cold]
-    pub fn resize(&mut self, new_len: usize) {
+    pub fn resize_uninitialized(&mut self, new_len: usize) {
         unsafe {
             let elem_size = mem::size_of::<T>();
 
@@ -79,12 +112,11 @@ impl<T> Array<T> {
                 let align = mem::align_of::<T>();
 
                 let new_alloc_size = new_len * elem_size;
-                let old_alloc_size = self.len * elem_size;
                 alloc_guard(new_alloc_size);
 
                 let ptr = heap::reallocate(
                     self.ptr() as *mut _,
-                    old_alloc_size,
+                    self.len * elem_size,
                     new_alloc_size,
                     align
                 );
@@ -93,13 +125,23 @@ impl<T> Array<T> {
                     oom()
                 }
 
-                if new_alloc_size > old_alloc_size {
-                    let offset = new_alloc_size - old_alloc_size;
-                    memzero(ptr, offset, new_alloc_size);
-                }
-
                 self.ptr = Unique::new(ptr as *mut _);
                 self.len = new_len;
+            }
+        }
+    }
+    #[inline]
+    pub fn resize_zeroed(&mut self, new_len: usize) {
+        let elem_size = mem::size_of::<T>();
+        let new_alloc_size = new_len * elem_size;
+        let old_alloc_size = self.len * elem_size;
+
+        self.resize_uninitialized(new_len);
+
+        if new_alloc_size > old_alloc_size {
+            let offset = new_alloc_size - old_alloc_size;
+            unsafe {
+                memdefault(*self.ptr as *mut u8, offset, new_alloc_size);
             }
         }
     }
@@ -146,7 +188,7 @@ impl<T> DerefMut for Array<T> {
 
 impl<T: Clone> Clone for Array<T> {
     fn clone(&self) -> Self {
-        let cloned = Array::<T>::new(self.len);
+        let cloned = Array::uninitialized(self.len);
         unsafe {
             ptr::copy(*self.ptr as *const _, *cloned.ptr, self.len);
         }
@@ -168,11 +210,11 @@ fn alloc_guard(alloc_size: usize) {
 }
 
 #[inline]
-unsafe fn memzero(ptr: *mut u8, offset: usize, len: usize) -> *mut u8 {
+unsafe fn memdefault<T: Default>(ptr: *mut T, offset: usize, len: usize) -> *mut T {
     let mut slice = slice::from_raw_parts_mut(ptr, len);
 
     for i in offset..len {
-        *slice.get_unchecked_mut(i) = 0u8;
+        *slice.get_unchecked_mut(i) = T::default();
     }
 
     ptr
