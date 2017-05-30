@@ -11,6 +11,6 @@ repository = "https://github.com/nathanfaucett/rs-array.git"
 homepage = "https://github.com/nathanfaucett/rs-array"
 
 [dependencies]
-collection_traits = {git = "https://github.com/nathanfaucett/rs-collection_traits"}
+collection_traits = {git = "https://github.com/nathanfaucett/rs-collection_traits", features=["no_std"]}
 
 [dev-dependencies]
