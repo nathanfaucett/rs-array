@@ -5,7 +5,9 @@ use core::isize;
 use core::intrinsics::assume;
 use core::ptr::{self, Unique};
 use core::{mem, slice, fmt};
-use core::ops::{Deref, DerefMut};
+use core::ops::{Index, IndexMut, Deref, DerefMut};
+
+use collection_traits::*;
 
 
 pub struct Array<T> {
@@ -18,7 +20,7 @@ impl<T: Default> Array<T> {
     pub fn new(len: usize) -> Self {
         let array = Array::uninitialized(len);
         unsafe {
-            memdefault(*array.ptr as *mut T, 0, len);
+            memdefault(array.ptr.as_ptr() as *mut T, 0, len);
         }
         array
     }
@@ -32,7 +34,7 @@ impl<T: Default> Array<T> {
             let offset = new_len - old_len;
 
             unsafe {
-                memdefault(*self.ptr, offset, new_len);
+                memdefault(self.ptr.as_ptr(), offset, new_len);
             }
         }
     }
@@ -46,7 +48,7 @@ impl<T> Array<T> {
             alloc_guard(alloc_size);
 
             let ptr = if alloc_size == 0 {
-                heap::EMPTY as *mut u8
+                Unique::empty().as_ptr() as *mut u8
             } else {
                 let align = mem::align_of::<T>();
                 let ptr = heap::allocate(alloc_size, align);
@@ -66,7 +68,7 @@ impl<T> Array<T> {
     pub fn zeroed(len: usize) -> Self {
         let array = Array::uninitialized(len);
         unsafe {
-            memdefault(*array.ptr as *mut u8, 0, len * mem::size_of::<T>());
+            memdefault(array.ptr.as_ptr() as *mut u8, 0, len * mem::size_of::<T>());
         }
         array
     }
@@ -97,9 +99,24 @@ impl<T> Array<T> {
         }
     }
 
+    #[inline]
+    fn clear(&mut self) {
+        let elem_size = mem::size_of::<T>();
+
+        if elem_size != 0 && self.len != 0 {
+            unsafe {
+                heap::deallocate(
+                    self.ptr.as_ptr() as *mut _,
+                    elem_size * self.len,
+                    mem::align_of::<T>()
+                );
+            }
+        }
+    }
+
     #[inline(always)]
-    pub fn ptr(&self) -> *mut T {
-        *self.ptr
+    pub fn as_ptr(&self) -> *mut T {
+        self.ptr.as_ptr()
     }
 
     #[inline(never)]
@@ -115,7 +132,7 @@ impl<T> Array<T> {
                 alloc_guard(new_alloc_size);
 
                 let ptr = heap::reallocate(
-                    self.ptr() as *mut _,
+                    self.ptr.as_ptr() as *mut _,
                     self.len * elem_size,
                     new_alloc_size,
                     align
@@ -141,7 +158,7 @@ impl<T> Array<T> {
         if new_alloc_size > old_alloc_size {
             let offset = new_alloc_size - old_alloc_size;
             unsafe {
-                memdefault(*self.ptr as *mut u8, offset, new_alloc_size);
+                memdefault(self.ptr.as_ptr() as *mut u8, offset, new_alloc_size);
             }
         }
     }
@@ -149,17 +166,7 @@ impl<T> Array<T> {
 
 impl<T> Drop for Array<T> {
     fn drop(&mut self) {
-        let elem_size = mem::size_of::<T>();
-
-        if elem_size != 0 && self.len != 0 {
-            unsafe {
-                heap::deallocate(
-                    *self.ptr as *mut _,
-                    elem_size * self.len,
-                    mem::align_of::<T>()
-                );
-            }
-        }
+        self.clear();
     }
 }
 
@@ -169,7 +176,7 @@ impl<T> Deref for Array<T> {
     #[inline(always)]
     fn deref(&self) -> &Self::Target {
         unsafe {
-            let p = *self.ptr;
+            let p = self.ptr.as_ptr();
             assume(!p.is_null());
             slice::from_raw_parts(p, self.len)
         }
@@ -179,7 +186,7 @@ impl<T> DerefMut for Array<T> {
     #[inline(always)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe {
-            let p = *self.ptr;
+            let p = self.ptr.as_ptr();
             assume(!p.is_null());
             slice::from_raw_parts_mut(p, self.len)
         }
@@ -190,11 +197,58 @@ impl<T: Clone> Clone for Array<T> {
     fn clone(&self) -> Self {
         let cloned = Array::uninitialized(self.len);
         unsafe {
-            ptr::copy(*self.ptr as *const _, *cloned.ptr, self.len);
+            ptr::copy(self.ptr.as_ptr() as *const _, cloned.ptr.as_ptr(), self.len);
         }
         cloned
     }
 }
+
+impl<T> CollectionMut for Array<T> {
+    #[inline(always)]
+    fn len(&self) -> usize {
+        self.len()
+    }
+    #[inline]
+    fn clear(&mut self) {
+        self.clear();
+        self.len = 0;
+        self.ptr = Unique::empty();
+    }
+}
+
+impl<T> Index<usize> for Array<T> {
+    type Output = T;
+
+    #[inline(always)]
+    fn index(&self, index: usize) -> &Self::Output {
+        &(**self)[index]
+    }
+}
+impl<T> IndexMut<usize> for Array<T> {
+    #[inline(always)]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut (**self)[index]
+    }
+}
+
+impl<'a, T: 'a> Iterable<'a, &'a T> for Array<T> {
+    type Iter = slice::Iter<'a, T>;
+
+    #[inline(always)]
+    fn iter(&'a self) -> Self::Iter {
+        (&**self).iter()
+    }
+}
+
+impl<'a, T: 'a> IterableMut<'a, &'a mut T> for Array<T> {
+    type IterMut = slice::IterMut<'a, T>;
+
+    #[inline(always)]
+    fn iter_mut(&'a mut self) -> Self::IterMut {
+        (&mut **self).iter_mut()
+    }
+}
+
 
 impl<T: fmt::Debug> fmt::Debug for Array<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

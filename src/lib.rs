@@ -9,6 +9,8 @@
 
 extern crate alloc;
 
+extern crate collection_traits;
+
 
 mod array;
 
