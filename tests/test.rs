@@ -1,5 +1,9 @@
+extern crate collection_traits;
+
 extern crate array;
 
+
+use collection_traits::*;
 
 use array::Array;
 
@@ -32,6 +36,14 @@ fn test_resize() {
     assert_eq!(array[1], 2);
     assert_eq!(array.len(), 2);
 }
+
+#[test]
+fn test_resize_after_clear() {
+    let mut array = Array::<usize>::new(3);
+    array.clear();
+    array.resize(3);
+}
+
 #[test]
 fn test_get() {
     let array = Array::<usize>::new(5);

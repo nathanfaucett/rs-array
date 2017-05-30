@@ -99,21 +99,6 @@ impl<T> Array<T> {
         }
     }
 
-    #[inline]
-    fn clear(&mut self) {
-        let elem_size = mem::size_of::<T>();
-
-        if elem_size != 0 && self.len != 0 {
-            unsafe {
-                heap::deallocate(
-                    self.ptr.as_ptr() as *mut _,
-                    elem_size * self.len,
-                    mem::align_of::<T>()
-                );
-            }
-        }
-    }
-
     #[inline(always)]
     pub fn as_ptr(&self) -> *mut T {
         self.ptr.as_ptr()
@@ -166,7 +151,17 @@ impl<T> Array<T> {
 
 impl<T> Drop for Array<T> {
     fn drop(&mut self) {
-        self.clear();
+        let elem_size = mem::size_of::<T>();
+
+        if elem_size != 0 && self.len != 0 {
+            unsafe {
+                heap::deallocate(
+                    self.ptr.as_ptr() as *mut _,
+                    elem_size * self.len,
+                    mem::align_of::<T>()
+                );
+            }
+        }
     }
 }
 
@@ -210,9 +205,9 @@ impl<T> CollectionMut for Array<T> {
     }
     #[inline]
     fn clear(&mut self) {
-        self.clear();
-        self.len = 0;
-        self.ptr = Unique::empty();
+        unsafe {
+            memdefault(self.ptr.as_ptr() as *mut u8, 0, self.len * mem::size_of::<T>());
+        }
     }
 }
 
