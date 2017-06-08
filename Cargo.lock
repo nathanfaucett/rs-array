@@ -8,7 +8,7 @@ dependencies = [
 [[package]]
 name = "collection_traits"
 version = "0.1.0"
-source = "git+https://github.com/nathanfaucett/rs-collection_traits#8e5fb429d654666897d1fa1887f8790cd9815d2c"
+source = "git+https://github.com/nathanfaucett/rs-collection_traits#516b19e436a024f7d7fd8efc6a20cf27b1d0ff4e"
 
 [metadata]
 "checksum collection_traits 0.1.0 (git+https://github.com/nathanfaucett/rs-collection_traits)" = "<none>"

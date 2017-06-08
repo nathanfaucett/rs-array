@@ -59,7 +59,7 @@ impl<T> Array<T> {
             };
 
             Array {
-                ptr: Unique::new(ptr as *mut _),
+                ptr: Unique::new(ptr as *mut T),
                 len: len,
             }
         }
@@ -117,7 +117,7 @@ impl<T> Array<T> {
                 alloc_guard(new_alloc_size);
 
                 let ptr = heap::reallocate(
-                    self.ptr.as_ptr() as *mut _,
+                    self.ptr.as_ptr() as *mut u8,
                     self.len * elem_size,
                     new_alloc_size,
                     align
@@ -127,7 +127,7 @@ impl<T> Array<T> {
                     oom()
                 }
 
-                self.ptr = Unique::new(ptr as *mut _);
+                self.ptr = Unique::new(ptr as *mut T);
                 self.len = new_len;
             }
         }
@@ -156,7 +156,7 @@ impl<T> Drop for Array<T> {
         if elem_size != 0 && self.len != 0 {
             unsafe {
                 heap::deallocate(
-                    self.ptr.as_ptr() as *mut _,
+                    self.ptr.as_ptr() as *mut u8,
                     elem_size * self.len,
                     mem::align_of::<T>()
                 );
@@ -192,7 +192,7 @@ impl<T: Clone> Clone for Array<T> {
     fn clone(&self) -> Self {
         let cloned = Array::uninitialized(self.len);
         unsafe {
-            ptr::copy(self.ptr.as_ptr() as *const _, cloned.ptr.as_ptr(), self.len);
+            ptr::copy(self.ptr.as_ptr() as *const T, cloned.ptr.as_ptr(), self.len);
         }
         cloned
     }
