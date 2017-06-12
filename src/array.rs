@@ -198,11 +198,14 @@ impl<T: Clone> Clone for Array<T> {
     }
 }
 
-impl<T> CollectionMut for Array<T> {
+impl<T> Collection for Array<T> {
     #[inline(always)]
     fn len(&self) -> usize {
         self.len()
     }
+}
+
+impl<T> CollectionMut for Array<T> {
     #[inline]
     fn clear(&mut self) {
         unsafe {
