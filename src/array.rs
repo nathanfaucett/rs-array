@@ -3,7 +3,7 @@ use alloc::boxed::Box;
 
 use core::isize;
 use core::intrinsics::assume;
-use core::ptr::{self, Unique};
+use core::ptr::Unique;
 use core::{mem, slice, fmt};
 use core::ops::{Index, IndexMut, Deref, DerefMut};
 
@@ -189,10 +189,15 @@ impl<T> DerefMut for Array<T> {
 }
 
 impl<T: Clone> Clone for Array<T> {
+    #[inline]
     fn clone(&self) -> Self {
         let cloned = Array::uninitialized(self.len);
         unsafe {
-            ptr::copy(self.ptr.as_ptr() as *const T, cloned.ptr.as_ptr(), self.len);
+            let mut slice = slice::from_raw_parts_mut(cloned.as_ptr(), self.len);
+
+            for i in 0..self.len {
+                *slice.get_unchecked_mut(i) = self[i].clone();
+            }
         }
         cloned
     }

@@ -74,19 +74,23 @@ fn test_get_mut() {
 #[test]
 fn test_get_clone_mut() {
     let mut a = Array::<usize>::new(3);
-    let b = a.clone();
+    let mut b = a.clone();
 
     a[0] = 1;
     a[1] = 2;
     a[2] = 3;
 
+    b[0] = 4;
+    b[1] = 5;
+    b[2] = 6;
+
     assert_eq!(a[0], 1);
     assert_eq!(a[1], 2);
     assert_eq!(a[2], 3);
 
-    assert_eq!(b[0], 0);
-    assert_eq!(b[1], 0);
-    assert_eq!(b[2], 0);
+    assert_eq!(b[0], 4);
+    assert_eq!(b[1], 5);
+    assert_eq!(b[2], 6);
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
