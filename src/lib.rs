@@ -1,4 +1,5 @@
 #![feature(core_intrinsics)]
+#![feature(inclusive_range)]
 #![feature(dropck_parametricity)]
 #![feature(heap_api)]
 #![feature(oom)]

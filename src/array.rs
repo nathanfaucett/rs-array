@@ -5,7 +5,10 @@ use core::isize;
 use core::intrinsics::assume;
 use core::ptr::Unique;
 use core::{mem, slice, fmt};
-use core::ops::{Index, IndexMut, Deref, DerefMut};
+use core::ops::{
+    Index, IndexMut, Deref, DerefMut,
+    Range, RangeFrom, RangeTo, RangeFull, RangeInclusive, RangeToInclusive
+};
 
 use collection_traits::*;
 
@@ -154,12 +157,10 @@ impl<T> Drop for Array<T> {
         let elem_size = mem::size_of::<T>();
 
         if elem_size != 0 && self.len != 0 {
+            let align = mem::align_of::<T>();
+
             unsafe {
-                heap::deallocate(
-                    self.ptr.as_ptr() as *mut u8,
-                    elem_size * self.len,
-                    mem::align_of::<T>()
-                );
+                heap::deallocate(self.ptr.as_ptr() as *mut u8, elem_size * self.len, align);
             }
         }
     }
@@ -231,6 +232,92 @@ impl<T> IndexMut<usize> for Array<T> {
     #[inline(always)]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut (**self)[index]
+    }
+}
+
+impl<T> Index<Range<usize>> for Array<T> {
+    type Output = [T];
+
+    #[inline(always)]
+    fn index(&self, index: Range<usize>) -> &[T] {
+        Index::index(&**self, index)
+    }
+}
+impl<T> Index<RangeTo<usize>> for Array<T> {
+    type Output = [T];
+
+    #[inline(always)]
+    fn index(&self, index: RangeTo<usize>) -> &[T] {
+        Index::index(&**self, index)
+    }
+}
+impl<T> Index<RangeFrom<usize>> for Array<T> {
+    type Output = [T];
+
+    #[inline(always)]
+    fn index(&self, index: RangeFrom<usize>) -> &[T] {
+        Index::index(&**self, index)
+    }
+}
+impl<T> Index<RangeFull> for Array<T> {
+    type Output = [T];
+
+    #[inline(always)]
+    fn index(&self, _index: RangeFull) -> &[T] {
+        self
+    }
+}
+impl<T> Index<RangeInclusive<usize>> for Array<T> {
+    type Output = [T];
+
+    #[inline(always)]
+    fn index(&self, index: RangeInclusive<usize>) -> &[T] {
+        Index::index(&**self, index)
+    }
+}
+impl<T> Index<RangeToInclusive<usize>> for Array<T> {
+    type Output = [T];
+
+    #[inline(always)]
+    fn index(&self, index: RangeToInclusive<usize>) -> &[T] {
+        Index::index(&**self, index)
+    }
+}
+
+impl<T> IndexMut<Range<usize>> for Array<T> {
+    #[inline(always)]
+    fn index_mut(&mut self, index: Range<usize>) -> &mut [T] {
+        IndexMut::index_mut(&mut **self, index)
+    }
+}
+impl<T> IndexMut<RangeTo<usize>> for Array<T> {
+    #[inline(always)]
+    fn index_mut(&mut self, index: RangeTo<usize>) -> &mut [T] {
+        IndexMut::index_mut(&mut **self, index)
+    }
+}
+impl<T> IndexMut<RangeFrom<usize>> for Array<T> {
+    #[inline(always)]
+    fn index_mut(&mut self, index: RangeFrom<usize>) -> &mut [T] {
+        IndexMut::index_mut(&mut **self, index)
+    }
+}
+impl<T> IndexMut<RangeFull> for Array<T> {
+    #[inline(always)]
+    fn index_mut(&mut self, _index: RangeFull) -> &mut [T] {
+        self
+    }
+}
+impl<T> IndexMut<RangeInclusive<usize>> for Array<T> {
+    #[inline(always)]
+    fn index_mut(&mut self, index: RangeInclusive<usize>) -> &mut [T] {
+        IndexMut::index_mut(&mut **self, index)
+    }
+}
+impl<T> IndexMut<RangeToInclusive<usize>> for Array<T> {
+    #[inline(always)]
+    fn index_mut(&mut self, index: RangeToInclusive<usize>) -> &mut [T] {
+        IndexMut::index_mut(&mut **self, index)
     }
 }
 
