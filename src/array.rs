@@ -1,86 +1,151 @@
-use alloc::{oom, heap};
+use alloc::heap::Heap;
+use alloc::allocator::{Alloc, Layout};
 use alloc::boxed::Box;
 
-use core::isize;
 use core::intrinsics::assume;
 use core::ptr::Unique;
 use core::{mem, slice, fmt};
-use core::ops::{
-    Index, IndexMut, Deref, DerefMut,
-    Range, RangeFrom, RangeTo, RangeFull, RangeInclusive, RangeToInclusive
-};
+use core::ops::*;
 
 use collection_traits::*;
 
 
-pub struct Array<T> {
-    len: usize,
+pub struct Array<T, A: Alloc = Heap> {
     ptr: Unique<T>,
+    len: usize,
+    a: A,
 }
 
-impl<T: Default> Array<T> {
+impl<T, A: Alloc> Array<T, A> {
+
     #[inline]
-    pub fn new(len: usize) -> Self {
-        let array = Array::uninitialized(len);
-        unsafe {
-            memdefault(array.ptr.as_ptr() as *mut T, 0, len);
-        }
-        array
-    }
-    #[inline]
-    pub fn resize(&mut self, new_len: usize) {
-        let old_len = self.len;
+    pub fn new_in(a: A) -> Self {
+        let len = if mem::size_of::<T>() == 0 { !0 } else { 0 };
 
-        self.resize_uninitialized(new_len);
-
-        if new_len > old_len {
-            let offset = new_len - old_len;
-
-            unsafe {
-                memdefault(self.ptr.as_ptr(), offset, new_len);
-            }
+        Array {
+            ptr: Unique::empty(),
+            len: len,
+            a: a,
         }
     }
-}
 
-impl<T> Array<T> {
-    #[inline(never)]
-    pub fn uninitialized(len: usize) -> Self {
+    #[inline(always)]
+    pub fn with_len_in(len: usize, a: A) -> Self {
+        Array::allocate_in(len, false, a)
+    }
+
+    #[inline(always)]
+    pub fn with_len_zeroed_in(len: usize, a: A) -> Self {
+        Array::allocate_in(len, true, a)
+    }
+
+    #[inline]
+    fn allocate_in(len: usize, zeroed: bool, mut a: A) -> Self {
         unsafe {
-            let alloc_size = len.checked_mul(mem::size_of::<T>()).expect("capacity overflow");
+            let elem_size = mem::size_of::<T>();
+
+            let alloc_size = len.checked_mul(elem_size).expect("capacity overflow");
             alloc_guard(alloc_size);
 
             let ptr = if alloc_size == 0 {
-                Unique::empty().as_ptr() as *mut u8
+                mem::align_of::<T>() as *mut u8
             } else {
                 let align = mem::align_of::<T>();
-                let ptr = heap::allocate(alloc_size, align);
-                if ptr.is_null() {
-                    oom()
+                let result = if zeroed {
+                    a.alloc_zeroed(Layout::from_size_align(alloc_size, align).unwrap())
+                } else {
+                    a.alloc(Layout::from_size_align(alloc_size, align).unwrap())
+                };
+                match result {
+                    Ok(ptr) => ptr,
+                    Err(err) => a.oom(err),
                 }
-                ptr
             };
 
             Array {
-                ptr: Unique::new(ptr as *mut T),
+                ptr: Unique::new(ptr as *mut _),
                 len: len,
+                a: a,
             }
         }
     }
-    #[inline]
-    pub fn zeroed(len: usize) -> Self {
-        let array = Array::uninitialized(len);
-        unsafe {
-            memdefault(array.ptr.as_ptr() as *mut u8, 0, len * mem::size_of::<T>());
-        }
-        array
+}
+
+impl<T> Array<T, Heap> {
+
+    #[inline(always)]
+    pub fn new() -> Self {
+        Self::new_in(Heap)
+    }
+
+    #[inline(always)]
+    pub fn with_len(len: usize) -> Self {
+        Array::allocate_in(len, false, Heap)
+    }
+
+    #[inline(always)]
+    pub fn with_len_zeroed(len: usize) -> Self {
+        Array::allocate_in(len, true, Heap)
     }
 
     #[inline]
+    pub fn set_len(&mut self, new_len: usize) {
+        unsafe {
+            let elem_size = mem::size_of::<T>();
+
+            assert!(elem_size != 0, "capacity overflow");
+
+            let ptr_res = if self.len == 0 {
+                let ptr_res = self.a.alloc_array::<T>(new_len);
+                ptr_res
+            } else {
+                let new_alloc_size = new_len * elem_size;
+                alloc_guard(new_alloc_size);
+                let ptr_res = self.a.realloc_array(self.ptr, self.len, new_len);
+                ptr_res
+            };
+
+            let uniq = match ptr_res {
+                Err(err) => self.a.oom(err),
+                Ok(uniq) => uniq,
+            };
+
+            self.ptr = uniq;
+            self.len = new_len;
+        }
+    }
+}
+
+impl<T: Default, A: Alloc> Array<T, A> {
+
+    #[inline(always)]
+    pub fn defaults(&mut self) {
+        unsafe {
+           memdefault(self.ptr.as_ptr() as *mut T, 0, self.len);
+       }
+    }
+}
+
+impl<T, A: Alloc> Array<T, A> {
+
+    #[inline(always)]
+    pub unsafe fn from_raw_parts_in(ptr: *mut T, len: usize, a: A) -> Self {
+        Array {
+            ptr: Unique::new(ptr),
+            len: len,
+            a: a,
+        }
+    }
+}
+
+impl<T> Array<T, Heap> {
+
+    #[inline(always)]
     pub unsafe fn from_raw_parts(ptr: *mut T, len: usize) -> Self {
         Array {
             ptr: Unique::new(ptr),
             len: len,
+            a: Heap,
         }
     }
 
@@ -91,6 +156,14 @@ impl<T> Array<T> {
             mem::forget(slice);
             result
         }
+    }
+}
+
+impl<T, A: Alloc> Array<T, A> {
+
+    #[inline]
+    pub fn as_ptr(&self) -> *mut T {
+        self.ptr.as_ptr()
     }
 
     #[inline(always)]
@@ -103,65 +176,47 @@ impl<T> Array<T> {
     }
 
     #[inline(always)]
-    pub fn as_ptr(&self) -> *mut T {
-        self.ptr.as_ptr()
+    pub fn alloc(&self) -> &A {
+        &self.a
     }
 
-    #[inline(never)]
-    #[cold]
-    pub fn resize_uninitialized(&mut self, new_len: usize) {
-        unsafe {
-            let elem_size = mem::size_of::<T>();
-
-            if elem_size != 0 {
-                let align = mem::align_of::<T>();
-
-                let new_alloc_size = new_len * elem_size;
-                alloc_guard(new_alloc_size);
-
-                let ptr = heap::reallocate(
-                    self.ptr.as_ptr() as *mut u8,
-                    self.len * elem_size,
-                    new_alloc_size,
-                    align
-                );
-
-                if ptr.is_null() {
-                    oom()
-                }
-
-                self.ptr = Unique::new(ptr as *mut T);
-                self.len = new_len;
-            }
-        }
+    #[inline(always)]
+    pub fn alloc_mut(&mut self) -> &mut A {
+        &mut self.a
     }
+}
+
+impl<T> Array<T, Heap> {
+
     #[inline]
-    pub fn resize_zeroed(&mut self, new_len: usize) {
+    pub unsafe fn into_box(self) -> Box<[T]> {
+        let slice = slice::from_raw_parts_mut(self.as_ptr(), self.len);
+        let output: Box<[T]> = Box::from_raw(slice);
+        mem::forget(self);
+        output
+    }
+}
+
+impl<T, A: Alloc> Array<T, A> {
+
+    #[inline]
+    pub unsafe fn dealloc_buffer(&mut self) {
         let elem_size = mem::size_of::<T>();
-        let new_alloc_size = new_len * elem_size;
-        let old_alloc_size = self.len * elem_size;
 
-        self.resize_uninitialized(new_len);
-
-        if new_alloc_size > old_alloc_size {
-            let offset = new_alloc_size - old_alloc_size;
-            unsafe {
-                memdefault(self.ptr.as_ptr() as *mut u8, offset, new_alloc_size);
-            }
+        if elem_size != 0 && self.len != 0 {
+            let ptr = self.as_ptr() as *mut u8;
+            let layout = Layout::new::<T>().repeat(self.len).unwrap().0;
+            self.a.dealloc(ptr, layout);
         }
     }
 }
 
-impl<T> Drop for Array<T> {
+unsafe impl<#[may_dangle] T, A: Alloc> Drop for Array<T, A> {
+
+    #[inline(always)]
     fn drop(&mut self) {
-        let elem_size = mem::size_of::<T>();
-
-        if elem_size != 0 && self.len != 0 {
-            let align = mem::align_of::<T>();
-
-            unsafe {
-                heap::deallocate(self.ptr.as_ptr() as *mut u8, elem_size * self.len, align);
-            }
+        unsafe {
+            self.dealloc_buffer();
         }
     }
 }
@@ -192,12 +247,12 @@ impl<T> DerefMut for Array<T> {
 impl<T: Clone> Clone for Array<T> {
     #[inline]
     fn clone(&self) -> Self {
-        let cloned = Array::uninitialized(self.len);
-        unsafe {
-            let mut slice = slice::from_raw_parts_mut(cloned.as_ptr(), self.len);
+        let mut cloned = Array::with_len(self.len);
+        {
+            let mut slice: &mut [T] = &mut *cloned;
 
             for i in 0..self.len {
-                *slice.get_unchecked_mut(i) = self[i].clone();
+                slice[i] = self[i].clone();
             }
         }
         cloned
@@ -212,11 +267,24 @@ impl<T> Collection for Array<T> {
 }
 
 impl<T> CollectionMut for Array<T> {
-    #[inline]
+    #[inline(always)]
     fn clear(&mut self) {
-        unsafe {
-            memdefault(self.ptr.as_ptr() as *mut u8, 0, self.len * mem::size_of::<T>());
-        }
+        self.set_len(0);
+    }
+}
+
+impl<T> Get<usize> for Array<T> {
+    type Output = T;
+
+    #[inline(always)]
+    fn get(&self, index: usize) -> Option<&Self::Output> {
+        (**self).get(index)
+    }
+}
+impl<T> GetMut<usize> for Array<T> {
+    #[inline(always)]
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Output> {
+        (**self).get_mut(index)
     }
 }
 
@@ -346,10 +414,11 @@ impl<T: fmt::Debug> fmt::Debug for Array<T> {
     }
 }
 
+
 #[inline]
 fn alloc_guard(alloc_size: usize) {
     if mem::size_of::<usize>() < 8 {
-        assert!(alloc_size <= isize::MAX as usize, "capacity overflow");
+        assert!(alloc_size <= ::core::isize::MAX as usize, "capacity overflow");
     }
 }
 

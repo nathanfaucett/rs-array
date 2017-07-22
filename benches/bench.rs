@@ -16,7 +16,9 @@ const SIZE: usize = 1024;
 
 #[bench]
 fn bench_array(b: &mut Bencher) {
-    let mut array = Array::new(SIZE);
+    let mut array = Array::with_len(SIZE);
+
+    array.defaults();
 
     b.iter(move || {
         for i in 0..SIZE {

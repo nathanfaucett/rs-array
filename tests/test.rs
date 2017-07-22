@@ -9,8 +9,9 @@ use array::Array;
 
 
 #[test]
-fn test_resize() {
-    let mut array = Array::<usize>::new(2);
+fn test_set_len() {
+    let mut array = Array::<usize>::with_len(2);
+    array.defaults();
 
     array[0] = 1;
     array[1] = 2;
@@ -19,7 +20,7 @@ fn test_resize() {
     assert_eq!(array[1], 2);
     assert_eq!(array.len(), 2);
 
-    array.resize(4);
+    array.set_len(4);
 
     array[2] = 3;
     array[3] = 4;
@@ -30,7 +31,7 @@ fn test_resize() {
     assert_eq!(array[3], 4);
     assert_eq!(array.len(), 4);
 
-    array.resize(2);
+    array.set_len(2);
 
     assert_eq!(array[0], 1);
     assert_eq!(array[1], 2);
@@ -38,15 +39,9 @@ fn test_resize() {
 }
 
 #[test]
-fn test_resize_after_clear() {
-    let mut array = Array::<usize>::new(3);
-    array.clear();
-    array.resize(3);
-}
-
-#[test]
 fn test_get() {
-    let array = Array::<usize>::new(5);
+    let mut array = Array::<usize>::with_len(5);
+    array.defaults();
 
     assert_eq!(array[0], 0);
     assert_eq!(array[1], 0);
@@ -56,7 +51,8 @@ fn test_get() {
 }
 #[test]
 fn test_get_mut() {
-    let mut array = Array::<usize>::new(5);
+    let mut array = Array::<usize>::with_len(5);
+    array.defaults();
 
     array[0] = 1;
     array[1] = 2;
@@ -73,7 +69,9 @@ fn test_get_mut() {
 
 #[test]
 fn test_get_clone_mut() {
-    let mut a = Array::<usize>::new(3);
+    let mut a = Array::<usize>::with_len(3);
+    a.defaults();
+
     let mut b = a.clone();
 
     a[0] = 1;
@@ -93,45 +91,45 @@ fn test_get_clone_mut() {
     assert_eq!(b[2], 6);
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
-struct EMPTY;
+#[derive(Debug, PartialEq, Eq)]
+enum Enum {
+    Empty,
+    Full
+}
+
+impl Default for Enum {
+    fn default() -> Self {
+        Enum::Empty
+    }
+}
 
 #[test]
 fn test_empty_get() {
-    let array = Array::<EMPTY>::new(3);
+    let mut array = Array::<Enum>::with_len(3);
+    array.defaults();
 
-    assert_eq!(array[0], EMPTY);
-    assert_eq!(array[1], EMPTY);
-    assert_eq!(array[2], EMPTY);
+    assert_eq!(array[0], Enum::Empty);
+    assert_eq!(array[1], Enum::Empty);
+    assert_eq!(array[2], Enum::Empty);
 }
 #[test]
 fn test_empty_get_mut() {
-    let mut array = Array::<EMPTY>::new(5);
+    let mut array = Array::<Enum>::with_len(5);
+    array.defaults();
 
-    array[0] = EMPTY;
-    array[1] = EMPTY;
-    array[2] = EMPTY;
+    array[0] = Enum::Full;
+    array[1] = Enum::Full;
+    array[2] = Enum::Full;
 
-    assert_eq!(array[0], EMPTY);
-    assert_eq!(array[1], EMPTY);
-    assert_eq!(array[2], EMPTY);
-}
-#[test]
-fn test_empty_get_mut_resize() {
-    let mut array = Array::<EMPTY>::new(3);
-
-    array.resize(1);
-    assert_eq!(array[0], EMPTY);
-
-    array.resize(3);
-    assert_eq!(array[0], EMPTY);
-    assert_eq!(array[1], EMPTY);
-    assert_eq!(array[2], EMPTY);
+    assert_eq!(array[0], Enum::Full);
+    assert_eq!(array[1], Enum::Full);
+    assert_eq!(array[2], Enum::Full);
 }
 
 #[test]
 fn test_iter() {
-    let array = Array::<usize>::new(5);
+    let mut array = Array::<usize>::with_len(5);
+    array.defaults();
 
     for value in array.iter() {
         assert_eq!(*value, 0);
@@ -139,7 +137,8 @@ fn test_iter() {
 }
 #[test]
 fn test_iter_mut() {
-    let mut array = Array::<usize>::new(5);
+    let mut array = Array::<usize>::with_len(5);
+    array.defaults();
 
     for value in array.iter_mut() {
         *value = 1;
